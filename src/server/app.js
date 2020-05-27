@@ -419,7 +419,7 @@ app.get('/', (req, res) => {
 	res.sendFile(HTML_FILE);
 });
 
-server.listen(3000, function() {
+server.listen(port, function() {
 	console.log('App listening on port: ' + port);
 });
 
