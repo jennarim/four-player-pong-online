@@ -29,6 +29,8 @@ function handleRestart(event) {
     }
 }
 
+let gameActive = true;
+
 class Canvas extends React.Component {
     componentDidMount() {
         const socket = this.props.socket;
@@ -48,7 +50,24 @@ class Canvas extends React.Component {
             document.addEventListener("keydown", handleRestart);
         });
 
+        socket.on('restart', function() {
+            console.log("restarting...");
+            gameActive = false;
+
+            // Black background
+            ctx.clearRect(0, 0, c.WIDTH, c.HEIGHT);
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, c.WIDTH, c.HEIGHT);
+
+            // Show someone disconnected
+            ctx.font = '25px serif';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = "center";
+            ctx.fillText("Someone disconnected... Please leave the room!", c.WIDTH/2 - 10, c.HEIGHT/2 - 20);
+        });
+
         socket.on('state', function(data) {
+            if (!gameActive) return;
             // Draw background
             ctx.clearRect(0, 0, c.WIDTH, c.HEIGHT);
             ctx.fillStyle = "black";
@@ -73,6 +92,28 @@ class Canvas extends React.Component {
             if (ball) {
                 Object.setPrototypeOf(ball, Ball.prototype);
                 ball.render(ctx);
+            }
+
+            // Draw each score
+            const playerScores = data.playerScores;
+            for (const playerNo in playerScores) {
+                const score = playerScores[playerNo];
+                ctx.font = '30px serif';
+                ctx.fillStyle = 'white';
+                switch (playerNo) {
+                    case '1':
+                        ctx.fillText(score, 20, c.HEIGHT/2);
+                        break;
+                    case '2':
+                        ctx.fillText(score, c.WIDTH - 40, c.HEIGHT/2);
+                        break;
+                    case '3':
+                        ctx.fillText(score, c.WIDTH/2, 40);
+                        break;
+                    case '4':
+                        ctx.fillText(score, c.WIDTH/2, c.HEIGHT - 40);
+                        break;
+                }
             }
         });
 

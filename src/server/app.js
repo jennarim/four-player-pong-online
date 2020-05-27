@@ -5,6 +5,7 @@ const Paddle = require('./../lib/Paddle.js');
 const Ball = require('./../lib/Ball.js');
 const Wall = require('./../lib/Wall.js');
 const Room = require('./../lib/Room.js');
+const Goal = require('./../lib/Goal.js');
 const c = require('./../lib/constants.js');
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
@@ -108,6 +109,14 @@ function getRoom(roomId) {
 	return null;
 }
 
+function removeRoom(roomId) {
+	for (let i=0; i < rooms.length; i++) {
+		if (rooms[i].id === roomId) {
+			rooms.splice(i, 1);
+		}
+	}
+}
+
 io.on('connection', function(socket) {
 	console.log(socket.id, " connected!");
 
@@ -170,18 +179,21 @@ io.on('connection', function(socket) {
 				break;
 		}
 		currentRoom.playerPaddles[socket.id] = new Paddle(xPos, yPos, width, height, playerNo);
+		currentRoom.playerGoals[socket.id] = new Goal(playerNo);
+		currentRoom.playerScores[playerNo] = 0;
 
 		if (Object.keys(currentRoom.playerPaddles).length === MAX_NUM_OF_PLAYERS) {
 			console.log("four players now. making ball.");
 			currentRoom.ball = new Ball(c.WIDTH/2, c.HEIGHT/2, 4, 5, 6);
 			currentRoom.ball.touchedPaddle = false;
+			currentRoom.ball.alreadyPastGoal = false;
 			socket.in(roomId).emit('game start');
 			socket.on('restart', function() {
 				socket.in(roomId).emit('game start');
 			});
 		}
 
-		console.log(rooms);
+		// console.log(rooms);
 	});
 
 	socket.on('disconnecting', function() {
@@ -189,13 +201,30 @@ io.on('connection', function(socket) {
 		const roomId = socket.rooms[Object.keys(socket.rooms)[1]];
 		const currentRoom = getRoom(roomId);
 		if (currentRoom) {
-			delete currentRoom.playerPaddles[socket.id];
-			let index = 1;
-			// Update playerNo
-			for (const playerPaddle in currentRoom.playerPaddles) {
-				playerPaddle.playerNo = index++;
+			socket.to(roomId).emit("restart");
+			// console.log(currentRoom);
+			const socketsInRoom = io.sockets.adapter.rooms[roomId].sockets;
+			// console.log(socketsInRoom);
+			let firstSocket;
+			while (firstSocket = Object.keys(socketsInRoom)[0]) {
+				console.log("leave");
+				removeRoom(roomId);
+				io.sockets.connected[firstSocket].leave(roomId);
 			}
-			// emit end game
+			// for (const socketId in socketsInRoom) {
+			// 	console.log("leave");
+			// 	io.sockets.connected[socketId].leave(roomId);
+			// }
+			
+			// for (const socketId in socketsInRoom) {
+			// 	if (socketId !== socket.id) {
+			// 		io.sockets.connected[socketId].disconnect();
+			// 		console.log("restarting...");
+			// 		socket.emit('restart');
+			// 	}
+			// }
+			// currentRoom.playerPaddles = {};
+			// delete currentRoom.playerPaddles[socket.id];
 		}
 	});
 
@@ -273,10 +302,6 @@ io.on('connection', function(socket) {
 					if (ballCollidesWithPaddle(ball, paddle)) {
 						if (ball.touchedPaddle === false) {
 							console.log("ball collides with paddle", paddle.playerNo);
-							// const signOfOriginalVx = (ball.vx > 0? 1:-1);
-							// const signOfOriginalVy = (ball.vy > 0? 1:-1);
-							// ball.vx = (Math.floor(Math.random() * 9) + 1) * signOfOriginalVx;
-							// ball.vy = (Math.floor(Math.random() * 9) + 1) * signOfOriginalVy;
 							switch (paddle.playerNo) {
 								case 1:
 								case 2:
@@ -297,40 +322,34 @@ io.on('connection', function(socket) {
 							ball.touchedPaddle = false;
 						}
 					}
-					// if ball collides with paddle
-						// vx = 1 - 9
-						// vy = 1 - 9
-						// if top bot, vy *= -1
-						// if left right, vx *= -1
 				}
-				/*
-					if (ballTouchingWall) {
-						console.log("ball collides with wall");
-						if (ball.alreadyTouched === false) {
-							if (withinBottomGoal() || withinTopGoal()) {
-								console.log("ball in bottom or top goal");
-								ball.vx *= -1;
-							} else if (withinLeftGoal() || withinRightGoal()) {
-								console.log("ball in left or right goal");
-								ball.vy *= -1;
+
+				const playerGoals = currentRoom.playerGoals;
+				const playerScores = currentRoom.playerScores;
+				for (const key in playerGoals) {
+					const goal = playerGoals[key];
+					if (goal.ballScoresAtGoal(ball)) {
+						if (ball.alreadyPastGoal) {
+							// reset the ball
+							ball.x = c.WIDTH/2;
+							ball.y = c.HEIGHT/2;
+							const angle = (360 * Math.random()) * (Math.PI/180);
+							ball.vx = 4 * Math.sin(angle);
+							ball.vy = 5 * Math.cos(angle);
+							ball.alreadyPastGoal = false;
+						} else {
+							// playerScores[socket.id]++;
+							if (ball.paddleTouched) {
+								playerScores[ball.paddleTouched]++;
+								ball.paddleTouched = undefined;
 							}
-							ball.alreadyTouched = true;
+							ball.alreadyPastGoal = true;
 						}
-					} else {
-						ball.alreadyTouched = false;
 					}
-				*/
+				}
+
 				ball.x += ball.vx;
 				ball.y += ball.vy;
-				// if ball collides with wall 
-					// if it's the first time
-						// in bottom or top goals
-							// ball.vx *= -1;
-						// in left or right goals
-							// ball.vy *= -1;
-						// collision with wall = true
-				// else
-					// collision with wall = false
 			}
 		}
 	/*
@@ -402,7 +421,9 @@ io.on('connection', function(socket) {
 			const playerPaddles = currentRoom.playerPaddles;
 			const ball = currentRoom.ball;
 			const walls = currentRoom.walls;
-			io.sockets.in(roomId).emit('state', {playerPaddles, ball, walls});
+			const playerScores = currentRoom.playerScores;
+			// console.log(currentRoom.playerScores);
+			io.sockets.in(roomId).emit('state', {playerPaddles, ball, walls, playerScores});
 		}
 	}, 1000 / 60);
 });
@@ -419,7 +440,7 @@ app.get('/', (req, res) => {
 	res.sendFile(HTML_FILE);
 });
 
-server.listen(port, function() {
+server.listen(3000, function() {
 	console.log('App listening on port: ' + port);
 });
 
