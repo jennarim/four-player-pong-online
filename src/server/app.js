@@ -188,14 +188,15 @@ io.on('connection', function(socket) {
 		console.log(socket.id, "disconnecting!");
 		const roomId = socket.rooms[Object.keys(socket.rooms)[1]];
 		const currentRoom = getRoom(roomId);
-
-		delete currentRoom.playerPaddles[socket.id];
-		let index = 1;
-		// Update playerNo
-		for (const playerPaddle in currentRoom.playerPaddles) {
-			playerPaddle.playerNo = index++;
+		if (currentRoom) {
+			delete currentRoom.playerPaddles[socket.id];
+			let index = 1;
+			// Update playerNo
+			for (const playerPaddle in currentRoom.playerPaddles) {
+				playerPaddle.playerNo = index++;
+			}
+			// emit end game
 		}
-		// emit end game
 	});
 
 	socket.on('player move', function(mousePos) {
