@@ -190,6 +190,7 @@ io.on('connection', function(socket) {
 								}
 								ball.currentlyCollidedWithPaddle = true;
 								ball.playerNoOfPaddleCollidedWith = paddle.playerNo;
+								ball.color = paddle.color;
 							}
 							break;
 						} else {
@@ -207,12 +208,7 @@ io.on('connection', function(socket) {
 						if (ball.outOfBounds(goal)) {
 							if (ball.alreadyPastGoal) {
 								// Reset the ball
-								ball.x = c.WIDTH/2;
-								ball.y = c.HEIGHT/2;
-								const angle = (360 * Math.random()) * (Math.PI/180);
-								ball.vx = c.BALL_INITIAL_VX * Math.sin(angle);
-								ball.vy = c.BALL_INITIAL_VY * Math.cos(angle);
-								ball.alreadyPastGoal = false;
+								ball.reset();
 							} else {
 								if (ball.playerNoOfPaddleCollidedWith) {
 									const playerToIncrScore = currentRoom.getPlayerWithPlayerNo(ball.playerNoOfPaddleCollidedWith);
@@ -240,10 +236,11 @@ io.on('connection', function(socket) {
 
 			if (currentRoom.gameActive) {
 				currentRoom.updateTime();
-				if (currentRoom.currentTime <= 0) {
+				if (currentRoom.currentTime <= -1) {
 					currentRoom.stopGame();
-					const winner = currentRoom.getWinner();
-					io.sockets.in(currentRoom.id).emit('game over', winner);
+					const winners = currentRoom.getWinners();
+					console.log(winners);
+					io.sockets.in(currentRoom.id).emit('game over', winners);
 					for (const interval of intervals) {
 						clearInterval(interval);
 					}
