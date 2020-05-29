@@ -12,7 +12,7 @@ const Player = require('./../lib/Player.js');
 const c = require('./../lib/constants.js');
 
 const rooms = [];
-const intervals = [];
+const intervals = {};
 
 function getRoomWithId(roomId) {
 	for (const room of rooms) {
@@ -55,6 +55,7 @@ io.on('connection', function(socket) {
 			socket.join(roomName);
 
 			const newRoom = new Room(roomName);
+			intervals[roomName] = [];
 			
 			// Add room to list of rooms
 			rooms.push(newRoom);
@@ -231,7 +232,12 @@ io.on('connection', function(socket) {
 
 	let interval = setInterval(function() {
 		const currentRoom = getCurrentRoomOfSocket(socket);
+
 		if (currentRoom) {
+			if (!intervals[currentRoom.id].includes(interval)) {
+				intervals[currentRoom.id].push(interval);
+			}
+
 			const ball = currentRoom.ball;
 			const walls = currentRoom.walls;
 			const players = currentRoom.players;
@@ -243,7 +249,8 @@ io.on('connection', function(socket) {
 					const winners = currentRoom.getWinners();
 					console.log(winners);
 					io.sockets.in(currentRoom.id).emit('game over', winners);
-					for (const interval of intervals) {
+					const roomIntervals = intervals[currentRoom.id];
+					for (const interval of roomIntervals) {
 						clearInterval(interval);
 					}
 					return;
@@ -254,8 +261,6 @@ io.on('connection', function(socket) {
 			io.sockets.in(currentRoom.id).emit('state', {ball, walls, players, time});
 		}
 	}, 1000 / 60);
-
-	intervals.push(interval);
 });
 
 const port = process.env.PORT || 3000;
