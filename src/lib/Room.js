@@ -87,6 +87,19 @@ class Room {
         }
         return listofWinners;
     }
+
+    getBotPaddles() {
+        const botPaddles = [];
+        for (const key in this.players) {
+            if (this.players.hasOwnProperty(key)) {
+                const socket = key;
+                if (socket.startsWith("bot")) {
+                    botPaddles.push(this.players[key].paddle);
+                }
+            }
+        }
+        return botPaddles;
+    }
 }
 
 module.exports = Room;

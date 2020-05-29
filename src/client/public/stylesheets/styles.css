@@ -14,9 +14,16 @@ body {
 canvas {
 	width: 600px;
 	height: 600px;
+	border: 5px solid black;
+}
+
+#game-container {
 	max-width: 600px;
 	margin: auto;
-	border: 5px solid black;
+}
+
+#bot-container {
+	@apply m-3;
 }
 
 .form-group {
@@ -51,7 +58,7 @@ label {
 	display: none;
 }
 
-button {
+#play-btn {
 	display: block;
 	text-align: center;
 	padding: 0px 15px;
@@ -61,6 +68,20 @@ button {
 	color: white;
 	@apply bg-indigo-600;
 	@apply rounded-lg w-full border-b-4 border-indigo-900;
+}
+
+p {
+	font-weight: 400;
+}
+
+#bots-btn {
+	display: inline;
+	text-align: center;
+	padding: 0px 15px;
+	font-weight: 700;
+	color: white;
+	@apply bg-indigo-600;
+	@apply rounded-lg border-b-4 border-indigo-900 mx-4;
 }
 
 button:disabled {

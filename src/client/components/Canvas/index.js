@@ -24,7 +24,17 @@ class Canvas extends React.Component {
         const canvas = this.refs.canvas;
         const ctx = canvas.getContext('2d');
 
+        const botsBtn = document.getElementById("bots-btn");
+        botsBtn.addEventListener("click", function(event) {
+            socket.emit("verse bots");
+        });
+
+        socket.on('host', function() {
+            document.getElementById('bot-container').classList.remove('hide');
+        });
+
         socket.on('game start', function() {
+            document.getElementById('bot-container').classList.add('hide');
             let lastUpdateTime = (new Date()).getTime();
             let interval = setInterval(function() {
                 const currentTime = (new Date()).getTime();
@@ -70,7 +80,7 @@ class Canvas extends React.Component {
                 const playerNo = winner.playerNo;
                 const color = winner.color;
                 ctx.fillStyle = color;
-                msg = playerNo + " ";
+                msg = "Player " + playerNo;
                 ctx.fillText(msg, c.WIDTH/2 - 10, c.HEIGHT/2 - offset);
                 offset -= 25;
             }
@@ -132,9 +142,15 @@ class Canvas extends React.Component {
 
     render() {
         return (
-            <canvas ref="canvas" width={c.WIDTH} height={c.HEIGHT} className="hide">
-                Sorry, your browser is not supported.
-            </canvas>
+            <div id="game-container">
+                <canvas ref="canvas" width={c.WIDTH} height={c.HEIGHT} className="hide">
+                    Sorry, your browser is not supported.
+                </canvas>
+                <span id="bot-container" className="p-3 m-3 hide">
+                    Missing some players? No problem!
+                    <button id="bots-btn">Fill Remaining with Bots</button>
+                </span>
+            </div>
         );
     }
 }

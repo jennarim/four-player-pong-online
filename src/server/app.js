@@ -35,6 +35,34 @@ function removeRoom(roomId) {
 		}
 	}
 }
+let vx = 6;
+let vy = 6;
+
+function moveBotPaddlesInRoom(room) {
+	const botPaddles = room.getBotPaddles();
+	for (const paddle of botPaddles) {
+		let newX = paddle.x;
+		let newY = paddle.y;
+		switch (paddle.playerNo) {
+			case 1:
+			case 2:
+				newY += vy;
+				break;
+			case 3:
+				newX += (vx * -1);
+				break;
+			case 4:
+				newX += vx;
+				break;
+		}
+		const posOfNext = {x: newX, y: newY};
+		const reverse = paddle.followMouse(posOfNext);
+		if (reverse) {
+			vx *= -1;
+			vy *= -1;
+		}
+	}
+}
 
 io.on('connection', function(socket) {
 	console.log(socket.id, "connected!");
@@ -72,6 +100,11 @@ io.on('connection', function(socket) {
 		// Add player to the room's list of players
 		currentRoom.players[socket.id] = newPlayer;
 
+		// Only host can choose to verse bots
+		if (playerNo === 1) {
+			socket.emit('host');
+		}
+
 		// Start the game when the room has 4 players
 		if (currentRoom.getNumberOfPlayers() === 4) {
 			currentRoom.startGame();
@@ -90,7 +123,10 @@ io.on('connection', function(socket) {
 			socket.to(currentRoom.id).emit('restart');
 
 			// Stop sending state
-			clearInterval(interval);
+			const roomIntervals = intervals[currentRoom.id];
+			for (const interval of roomIntervals) {
+				clearInterval(interval);
+			}
 
 			// Remove this room and force everyone to leave
 			const socketsInRoom = io.sockets.adapter.rooms[currentRoom.id].sockets;
@@ -110,35 +146,7 @@ io.on('connection', function(socket) {
 			if (player) {
 				const paddle = player.getPaddle();
 				if (paddle) {
-					let paddlePosX, paddlePosY;
-					switch (paddle.playerNo) {
-						case 1: // left
-						case 2: // right
-							const minY = c.WALL_HEIGHT;
-							const maxY = minY + c.GOAL_POST_LENGTH;
-							if (mousePos.y < minY) {
-								paddlePosY = minY;
-							} else if ((mousePos.y + c.PADDLE_LONG_LENGTH) > maxY) {
-								paddlePosY = maxY - c.PADDLE_LONG_LENGTH;
-							} else {
-								paddlePosY = mousePos.y;
-							}
-							paddle.setY(paddlePosY);
-							break;
-						case 3: // up
-						case 4: // down
-							const minX = c.WALL_WIDTH;
-							const maxX = minX + c.GOAL_POST_LENGTH;
-							if (mousePos.x < minX) {
-								paddlePosX = minX;
-							} else if ((mousePos.x + c.PADDLE_LONG_LENGTH) > maxX) {
-								paddlePosX = maxX - c.PADDLE_LONG_LENGTH;
-							} else {
-								paddlePosX = mousePos.x;
-							}
-							paddle.setX(paddlePosX);
-							break;
-					}
+					paddle.followMouse(mousePos);
 				}	
 			}
 		}
@@ -230,6 +238,23 @@ io.on('connection', function(socket) {
 		}
 	});
 
+	socket.on('verse bots', function() {
+		const currentRoom = getCurrentRoomOfSocket(socket);
+		const currentNumOfPlayers = currentRoom.getNumberOfPlayers();
+
+		for (let i=currentNumOfPlayers+1; i <= 4; i++) {
+			const newPlayer = new Player(i);
+			const fakeSocket = "bot" + (i);
+			currentRoom.players[fakeSocket] = newPlayer;
+		}
+		currentRoom.startGame();
+		if (currentNumOfPlayers === 1) {
+			socket.emit('game start');
+		} else {
+			socket.in(currentRoom.id).emit('game start');
+		}
+	});
+
 	let interval = setInterval(function() {
 		const currentRoom = getCurrentRoomOfSocket(socket);
 
@@ -247,7 +272,6 @@ io.on('connection', function(socket) {
 				if (currentRoom.currentTime <= -1) {
 					currentRoom.stopGame();
 					const winners = currentRoom.getWinners();
-					console.log(winners);
 					io.sockets.in(currentRoom.id).emit('game over', winners);
 					const roomIntervals = intervals[currentRoom.id];
 					for (const interval of roomIntervals) {
@@ -258,6 +282,7 @@ io.on('connection', function(socket) {
 			}
 
 			const time = currentRoom.currentTime;
+			moveBotPaddlesInRoom(currentRoom);
 			io.sockets.in(currentRoom.id).emit('state', {ball, walls, players, time});
 		}
 	}, 1000 / 60);
