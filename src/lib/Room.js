@@ -90,11 +90,10 @@ class Room {
 
     getBotPaddles() {
         const botPaddles = [];
-        for (const key in this.players) {
-            if (this.players.hasOwnProperty(key)) {
-                const socket = key;
+        for (const socket in this.players) {
+            if (this.players.hasOwnProperty(socket)) {
                 if (socket.startsWith("bot")) {
-                    botPaddles.push(this.players[key].paddle);
+                    botPaddles.push(this.players[socket].paddle);
                 }
             }
         }

@@ -35,32 +35,11 @@ function removeRoom(roomId) {
 		}
 	}
 }
-let vx = 6;
-let vy = 6;
 
 function moveBotPaddlesInRoom(room) {
 	const botPaddles = room.getBotPaddles();
 	for (const paddle of botPaddles) {
-		let newX = paddle.x;
-		let newY = paddle.y;
-		switch (paddle.playerNo) {
-			case 1:
-			case 2:
-				newY += vy;
-				break;
-			case 3:
-				newX += (vx * -1);
-				break;
-			case 4:
-				newX += vx;
-				break;
-		}
-		const posOfNext = {x: newX, y: newY};
-		const reverse = paddle.followMouse(posOfNext);
-		if (reverse) {
-			vx *= -1;
-			vy *= -1;
-		}
+		paddle.moveBot();
 	}
 }
 
@@ -70,9 +49,8 @@ io.on('connection', function(socket) {
 	socket.on('join pending', function(roomName) {
 		const roomToJoin = getRoomWithId(roomName);
 		
-		if (roomToJoin && roomToJoin.isFull()) { // Room exists
+		if (roomToJoin && roomToJoin.isFull()) {
 			if (roomToJoin.isFull()) {
-				console.log('someone tried to join full room');
 				socket.emit('join failure');
 			} else {
 				socket.emit('join success');
@@ -92,6 +70,7 @@ io.on('connection', function(socket) {
 
 	socket.on('new player', function() {
 		const currentRoom = getCurrentRoomOfSocket(socket);
+		if (!currentRoom) return;
 
 		// Create a new player 
 		const playerNo = currentRoom.getNumberOfPlayers() + 1;
@@ -128,13 +107,14 @@ io.on('connection', function(socket) {
 				clearInterval(interval);
 			}
 
-			// Remove this room and force everyone to leave
+			// Remove this room
+			removeRoom(currentRoom.id);
+
+			// Force each connected client in room to leave
 			const socketsInRoom = io.sockets.adapter.rooms[currentRoom.id].sockets;
 			let firstSocket;
 			while (firstSocket = Object.keys(socketsInRoom)[0]) {
-				console.log("client leaves room");
 				io.sockets.connected[firstSocket].leave(currentRoom.id);
-				removeRoom(currentRoom.id);
 			}
 		}
 	});
@@ -164,19 +144,15 @@ io.on('connection', function(socket) {
 				for (const wall of walls) {
 					const collides = ball.collidesWithWall(wall);
 					if (collides) {
-						console.log("ball collides with wall");
 						if (ball.collidesAtCorner) {
-							console.log("ball collides at corner");
-							ball.vx *= -1;
-							ball.vy *= -1;
+							const angle = (360 * Math.random()) * (Math.PI/180);
+							ball.vx = ball.vx * -1 * Math.sin(angle);
+							ball.vy = ball.vy * -1 * c.BALL_INITIAL_VY * Math.cos(angle);
+							ball.collidesAtCorner = false;
 						} else if (ball.isInBottomGoal() || ball.isInTopGoal()) {
-							console.log("ball in bottom or top goal");
 							ball.vx *= -1;
 						} else if (ball.isInLeftGoal() || ball.isInRightGoal()) {
-							console.log("ball in left or right goal");
 							ball.vy *= -1;
-						} else {
-							console.log("ball collided but is not in any goal");
 						}
 						break;
 					}
@@ -184,24 +160,13 @@ io.on('connection', function(socket) {
 
 				// Change ball direction if ball collides with paddle
 				const players = currentRoom.players;
-				for (const key in players) {
-					if (players.hasOwnProperty(key)) {
-						const paddle = players[key].getPaddle();
+				for (const socket in players) {
+					if (players.hasOwnProperty(socket)) {
+						const paddle = players[socket].getPaddle();
 						if (ball.collidesWithPaddle(paddle)) {
+							// First collision with paddle
 							if (!ball.currentlyCollidedWithPaddle) {
-								console.log("ball collides with paddle for the first time", paddle.playerNo);
-								switch (paddle.playerNo) {
-									case 1:
-									case 2:
-										ball.vx *= -1;
-										break;
-									case 3:
-									case 4:
-										ball.vy *= -1;
-								}
-								ball.currentlyCollidedWithPaddle = true;
-								ball.playerNoOfPaddleCollidedWith = paddle.playerNo;
-								ball.color = paddle.color;
+								ball.changeDirectionOnCollisionWith(paddle);
 							}
 							break;
 						} else {
@@ -213,12 +178,11 @@ io.on('connection', function(socket) {
 				}
 
 				// Increment score if ball passed goal
-				for (const key in players) {
-					if (players.hasOwnProperty(key)) {
-						const goal = players[key].getGoal();
+				for (const socket in players) {
+					if (players.hasOwnProperty(socket)) {
+						const goal = players[socket].getGoal();
 						if (ball.outOfBounds(goal)) {
 							if (ball.alreadyPastGoal) {
-								// Reset the ball
 								ball.reset();
 							} else {
 								if (ball.playerNoOfPaddleCollidedWith) {
@@ -271,8 +235,12 @@ io.on('connection', function(socket) {
 				currentRoom.updateTime();
 				if (currentRoom.currentTime <= -1) {
 					currentRoom.stopGame();
+
+					// Send winners
 					const winners = currentRoom.getWinners();
 					io.sockets.in(currentRoom.id).emit('game over', winners);
+
+					// Stop sending state
 					const roomIntervals = intervals[currentRoom.id];
 					for (const interval of roomIntervals) {
 						clearInterval(interval);

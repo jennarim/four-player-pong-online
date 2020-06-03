@@ -8,6 +8,10 @@ class Paddle {
         this.height = height;
         this.playerNo = playerNo;
         this.color = color;
+
+        // For Bots
+        this.vx = 2;
+        this.vy = 2;
     }
 
     setX(x) {
@@ -36,7 +40,6 @@ class Paddle {
 
     followMouse(mousePos) {
         let paddlePosX, paddlePosY;
-        let reverse = false;
         switch (this.playerNo) {
             case 1: // left
             case 2: // right
@@ -44,10 +47,8 @@ class Paddle {
                 const maxY = minY + c.GOAL_POST_LENGTH;
                 if (mousePos.y < minY) {
                     paddlePosY = minY;
-                    reverse = true;
                 } else if ((mousePos.y + c.PADDLE_LONG_LENGTH) > maxY) {
                     paddlePosY = maxY - c.PADDLE_LONG_LENGTH;
-                    reverse = true;
                 } else {
                     paddlePosY = mousePos.y;
                 }
@@ -59,17 +60,48 @@ class Paddle {
                 const maxX = minX + c.GOAL_POST_LENGTH;
                 if (mousePos.x < minX) {
                     paddlePosX = minX;
-                    reverse = true;
                 } else if ((mousePos.x + c.PADDLE_LONG_LENGTH) > maxX) {
                     paddlePosX = maxX - c.PADDLE_LONG_LENGTH;
-                    reverse = true;
                 } else {
                     paddlePosX = mousePos.x;
                 }
                 this.x = paddlePosX;
                 break;
         }
-        return reverse;
+    }
+
+    moveBot() {
+        let paddlePosX, paddlePosY;
+        switch (this.playerNo) {
+            case 1: // left
+            case 2: // right
+                paddlePosY = this.y + this.vy;
+                const minY = c.WALL_HEIGHT;
+                const maxY = minY + c.GOAL_POST_LENGTH;
+                if (paddlePosY < minY) {
+                    paddlePosY = minY;
+                    this.vy *= -1;
+                } else if ((paddlePosY + c.PADDLE_LONG_LENGTH) > maxY) {
+                    paddlePosY = maxY - c.PADDLE_LONG_LENGTH;
+                    this.vy *= -1;
+                } 
+                this.y = paddlePosY;
+                break;
+            case 3: // up
+            case 4: // down
+                paddlePosX = this.x + this.vx;
+                const minX = c.WALL_WIDTH;
+                const maxX = minX + c.GOAL_POST_LENGTH;
+                if (paddlePosX < minX) {
+                    paddlePosX = minX;
+                    this.vx *= -1;
+                } else if ((paddlePosX + c.PADDLE_LONG_LENGTH) > maxX) {
+                    paddlePosX = maxX - c.PADDLE_LONG_LENGTH;
+                    this.vx *= -1;
+                }
+                this.x = paddlePosX;
+                break;
+        }
     }
 
     render(ctx) {

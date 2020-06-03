@@ -86,6 +86,21 @@ class Ball {
         return (dx*dx+dy*dy<=(this.radius*this.radius));
     }
 
+    changeDirectionOnCollisionWith(paddle) {
+        switch (paddle.playerNo) {
+            case 1:
+            case 2:
+                this.vx *= -1;
+                break;
+            case 3:
+            case 4:
+                this.vy *= -1;
+        }
+        this.currentlyCollidedWithPaddle = true;
+        this.playerNoOfPaddleCollidedWith = paddle.playerNo;
+        this.color = paddle.color;
+    }
+
     reset() {
         this.x = c.WIDTH/2;
         this.y = c.HEIGHT/2;

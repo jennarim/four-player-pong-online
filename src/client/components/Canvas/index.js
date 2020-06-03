@@ -46,6 +46,7 @@ class Canvas extends React.Component {
         });
 
         socket.on('restart', function() {
+            // Stop sending state
             for (const interval of intervals) {
                 clearInterval(interval);
             }
@@ -63,19 +64,19 @@ class Canvas extends React.Component {
         });
 
         socket.on('game over', function(winnerList) {
+            // Stop sending state
             for (const interval of intervals) {
                 clearInterval(interval);
             }
 
-            // Show someone disconnected
+            // Show winner(s)
             ctx.font = '25px serif';
-            ctx.textAlign = 'center';
-
             ctx.fillStyle = 'white';
-            let msg = "WINNER";
-            ctx.fillText(msg, c.WIDTH/2 - 10, c.HEIGHT/2 - 75);
+            ctx.textAlign = 'center';   
+            ctx.fillText("WINNER", c.WIDTH/2 - 10, c.HEIGHT/2 - 75);
 
             let offset = 50;
+            let msg;
             for (const winner of winnerList) {
                 const playerNo = winner.playerNo;
                 const color = winner.color;

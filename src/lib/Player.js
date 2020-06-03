@@ -7,16 +7,17 @@ function paddleArgsBasedOn(playerNo) {
     let xPos, yPos;
     let width, height;
     let color;
+    let padding = 10;
     switch (playerNo) {
         case 1: // left
-            xPos = c.WALL_WIDTH - c.PADDLE_SHORT_LENGTH;
+            xPos = c.WALL_WIDTH - c.PADDLE_SHORT_LENGTH - padding;
             yPos = c.WALL_HEIGHT;
             width = c.PADDLE_SHORT_LENGTH;
             height = c.PADDLE_LONG_LENGTH;
             color = "crimson";
             break;
         case 2: // right
-            xPos = c.WALL_WIDTH + c.GOAL_POST_LENGTH;
+            xPos = c.WALL_WIDTH + c.GOAL_POST_LENGTH + padding;
             yPos = c.WALL_HEIGHT;
             width = c.PADDLE_SHORT_LENGTH;
             height = c.PADDLE_LONG_LENGTH;
@@ -24,14 +25,14 @@ function paddleArgsBasedOn(playerNo) {
             break;
         case 3: // up
             xPos = c.WALL_WIDTH;
-            yPos = c.WALL_HEIGHT - c.PADDLE_SHORT_LENGTH;
+            yPos = c.WALL_HEIGHT - c.PADDLE_SHORT_LENGTH - padding;
             width = c.PADDLE_LONG_LENGTH;
             height = c.PADDLE_SHORT_LENGTH;
             color = "lightgreen";
             break;
         case 4: // down
             xPos = c.WALL_WIDTH;
-            yPos = c.WALL_HEIGHT + c.GOAL_POST_LENGTH;
+            yPos = c.WALL_HEIGHT + c.GOAL_POST_LENGTH + padding;
             width = c.PADDLE_LONG_LENGTH;
             height = c.PADDLE_SHORT_LENGTH;
             color = "cornflowerblue";
