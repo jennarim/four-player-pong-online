@@ -3,7 +3,7 @@ import React from 'react';
 function handleRoomWithSocket(lobby, socket) {
     return function(event) {
         event.preventDefault();
-        const roomName = lobby.querySelector("input").value;
+        const roomName = lobby.querySelector("input").value.toUpperCase();
         socket.emit('join pending', roomName);
     };
 }
@@ -51,8 +51,8 @@ class Lobby extends React.Component {
                 <form>
                     <fieldset>
                         <div className="form-group">
-                            <label htmlFor="roomcode" className="text-lobby"> ROOM CODE </label>
-                            <input name="roomcode" id="roomcode" className="input-lobby" type="text" maxLength="4" placeholder="Enter 4-letter room code to create or join"></input>
+                            <label htmlFor="roomcode" className="text-lobby"> CREATE A ROOM or ENTER AN EXISTING ROOM CODE </label>
+                            <input name="roomcode" id="roomcode" className="input-lobby" type="text" maxLength="4" placeholder="Enter 4-letter room code to create or join" required></input>
                             <div className="px-6">
                                 <button type="submit" id="play-btn" className="my-3" disabled>PLAY</button>
                             </div>

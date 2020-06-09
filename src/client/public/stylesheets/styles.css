@@ -74,6 +74,10 @@ p {
 	font-weight: 400;
 }
 
+#roomcode:valid {
+	text-transform: uppercase;
+}
+
 #bots-btn {
 	display: inline;
 	text-align: center;
