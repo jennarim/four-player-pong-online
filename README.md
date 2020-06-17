@@ -21,7 +21,7 @@ Play the game here: https://four-player-pong.herokuapp.com/
 	* Note: The other three players in this game chose not to move. 
 * Play with bots if you don't have 4 people  
 ![play-with-bots](documentation/gifs/play-with-bots.gif)
-* Compete against each other for the highest score
+* Compete against each other for the highest score  
 ![play-with-bots](documentation/pics/sample-win-screen.png)
 
 ## Built with
